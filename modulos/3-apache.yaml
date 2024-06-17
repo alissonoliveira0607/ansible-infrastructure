@@ -1,0 +1,53 @@
+---
+- hosts: webservers
+  become: true
+
+  pre_tasks:
+    - name: Configuração dos repositórios do CENTOS
+      when: ansible_os_family == "RedHat"
+      find:
+        paths: /etc/yum.repos.d/
+        patterns: "*.repo"
+      register: yum_repos_files
+    # CORREÇÃO TEMPORÁRIA APRA O ERRO failed to download metadata for repo 'appstream'
+    - name: Comentar as linhas de mirrorlist
+      when: ansible_os_family == "RedHat"
+      replace:
+        path: "{{ item.path }}"
+        regexp: '^mirrorlist'
+        replace: '#mirrorlist'
+      loop: "{{ yum_repos_files.files }}"
+      notify: Run yum clean all
+    # CORREÇÃO TEMPORÁRIA APRA O ERRO failed to download metadata for repo 'appstream'
+    - name: Atualizar baseurl para vault.centos.org
+      when: ansible_os_family == "RedHat"
+      replace:
+        path: "{{ item.path }}"
+        regexp: '^#baseurl=http://mirror.centos.org'
+        replace: 'baseurl=http://vault.centos.org'
+      loop: "{{ yum_repos_files.files }}"
+      notify: Run yum clean all
+
+  tasks:
+    - name: Inclui task de instalação do Apache
+      ansible.builtin.include_tasks: 3.1-install-apache.yaml  # REALIZA A INSTALAÇÃO A PARTIR DE OUTRO ARQUVI
+    - name: Inclui task de configuração do Apache
+      ansible.builtin.include_tasks: 3.2-configure-apache.yaml  # REALIZA A CONFIGURAÇÃO A PARTIR DE OUTRO ARQUIVO
+
+  handlers:
+    - name: Restart Apache
+      when: ansible_os_family == "Debian"
+      ansible.builtin.service:
+        name: apache2
+        state: restarted
+
+    - name: Restart Httpd
+      when: ansible_os_family == "RedHat"
+      ansible.builtin.service:
+        name: httpd
+        state: restarted
+        enabled: yes
+
+    - name: Run yum clean all
+      when: ansible_os_family == "RedHat"
+      command: yum clean all

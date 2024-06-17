@@ -1,0 +1,74 @@
+---
+- hosts: balancer
+  become: true
+
+  pre_tasks:
+    - name: Encontrar arquivos de repositório YUM
+      find:
+        paths: /etc/yum.repos.d/
+        patterns: "*.repo"
+      register: yum_repo_files  #  find procura todos os arquivos .repo no diretório /etc/yum.repos.d/ e armazena a lista em yum_repo_files.
+
+    - name: Comentar as linhas de mirrorlist
+      replace:
+        path: "{{ item.path }}"  # Uso de item.path: Nas tarefas replace, o path é definido como {{ item.path }}, que é o campo correto para acessar o caminho do arquivo encontrado pelo módulo find
+        regexp: '^mirrorlist'
+        replace: '#mirrorlist'
+      loop: "{{ yum_repo_files.files }}"  # Uso de loop: As tarefas replace usam loop: "{{ yum_repo_files.files }}" para iterar sobre cada arquivo encontrado.
+      notify: Run yum clean all
+
+    - name: Atualizar baseurl para vault.centos.org
+      replace:
+        path: "{{ item.path }}"
+        regexp: '^#baseurl=http://mirror.centos.org'
+        replace: 'baseurl=http://vault.centos.org'
+      loop: "{{ yum_repo_files.files }}"
+      notify: Run yum clean all
+
+  tasks:
+    - name: Instalar dependências
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+      notify: Run yum clean all
+
+    - name: Instalar servidor Nginx
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+      register: nginx_installed
+      notify:
+        - Start Nginx
+
+    - name: Definir o arquivo de configuração do servidor Nginx
+      when: nginx_installed is succeeded
+      ansible.builtin.copy:
+        src: /home/suporte/modulos/files/nginx/nginx.conf
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Restart Nginx
+
+  post_tasks:
+    - name: Testar a instalação
+      ansible.builtin.uri:
+        url: http://172.16.0.200
+        return_content: yes
+        status_code: 200
+
+  handlers:
+    - name: Start Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Restart Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+
+    - name: Run yum clean all
+      command: yum clean all
