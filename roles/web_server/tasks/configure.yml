@@ -1,7 +1,7 @@
 ---
 - name: Monta diretorio site do servidor NFS
-  ansible.builtin.mount:
-    src: 172.16.0.200:/opt/site
+  ansible.builtin.mount:   # Faz a montagem do NFS no host
+    src: 172.16.0.200:/opt/site   # Montando o opt/site compartilhado em /var/www/html no host
     path: /var/www/html
     opts: defaults
     state: mounted

@@ -1,6 +1,6 @@
 ---
 - name: Padroniza o arquivo /etc/hosts
-  ansible.builtin.import_tasks: hosts.yml
+  ansible.builtin.import_tasks: hosts.yml  # Importa as tasks para execução da playbook
 
 - name: Instala pacotes base
   ansible.builtin.import_tasks: packages.yml

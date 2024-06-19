@@ -28,13 +28,15 @@
     - Restart NFS CentOS
   tags: nfs
 
+
+# Validação para verificar se o subdiretório admin já existe
 - name: Verifica se diretorio /opt/site/admin existe
   ansible.builtin.stat:
     path: /opt/site/admin
   register: site_directory
 
 - name: Criando diretorio site
-  when: not site_directory.stat.exists
+  when: not site_directory.stat.exists  # Se não existir o diretório realiza a copia, isso é chamado de idempotência
   ansible.builtin.copy:
     src: site/
     dest: /opt/site

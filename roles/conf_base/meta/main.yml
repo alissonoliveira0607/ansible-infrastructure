@@ -1,9 +1,9 @@
 ---
 galaxy_info:
   role_name: conf_base
-  author: sua_conta_github
+  author: alissonoliveira0607
   description: Configuracao Base de usuários, pacotes e hosts
-  company: 4Linux
+  company: Devops
   license: GPLv3
   min_ansible_version: "2.12"
   platforms:
